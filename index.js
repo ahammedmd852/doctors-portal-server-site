@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const app = express();
@@ -14,6 +15,21 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+function verifyJWT(req, res, next) {
+  const authorization = req.headers.authorization;
+  if(!authorization){
+    return res.status(401).send({ message: "UnAuthorized Access" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded) {
+    if(err) {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 async function run() {
   try {
@@ -34,8 +50,14 @@ async function run() {
       const updateDoc = {
         $set: user,
       };
-      const result = await userCollection.updateOne(filter, options, updateDoc);
-      res.send(result);
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      const token = jwt.sign({email: email}, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res.send({result, token});
+    });
+
+    app.get('/user', async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
     });
 
     app.get("/service", async (req, res) => {
@@ -70,11 +92,17 @@ async function run() {
       res.send(services);
     });
 
-    app.get("/booking", async (req, res) => {
+    app.get("/booking", verifyJWT, async (req, res) => {
       const patient = req.query.patient;
+      const decodedEmail = req.decoded.email;
+     if(patient === decodedEmail) {
       const query = { patient: patient };
       const bookings = await bookingCollection.find(query).toArray();
-      res.send(bookings);
+      return res.send(bookings);
+    }
+    else{
+      return res.status(403).send({message: "Forbidden access"});
+    }
     });
 
     app.post("/booking", async (req, res) => {
