@@ -101,7 +101,7 @@ async function run() {
       res.send(services);
     });
 
-    app.get("/doctor", verifyJWT,verifyAdmin, async (req, res) => {
+    app.get("/doctor", verifyJWT, verifyAdmin, async (req, res) => {
       const doctors = await doctorCollection.find().toArray();
       res.send(doctors);
     });
@@ -112,12 +112,12 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/doctor/:email', verifyJWT, verifyAdmin, async (req, res) => {
+    app.delete("/doctor/:email", verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email;
-      const filter = {email: email};
+      const filter = { email: email };
       const result = await doctorCollection.deleteOne(filter);
       res.send(result);
-    })
+    });
 
     app.get("/available", async (req, res) => {
       const date = req.query.date || "May 22, 2022";
@@ -156,9 +156,9 @@ async function run() {
       }
     });
 
-    app.get('/booking/:id',verifyJWT, async (req, res) => {
+    app.get("/booking/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-      const query = {_id: ObjectId(id)};
+      const query = { _id: ObjectId(id) };
       const booking = await bookingCollection.findOne(query);
       res.send(booking);
     });
